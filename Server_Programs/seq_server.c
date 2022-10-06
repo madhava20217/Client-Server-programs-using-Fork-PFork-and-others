@@ -44,5 +44,12 @@ int main(){
     int n_bytes_client = 0;
     struct sockaddr_in client;
     int connect = accept(sockfd, (struct sockaddr*) &client, &n_bytes_client);
-    
+    if(connect < 0){
+        printf("Couldn't connect");
+        exit(EXIT_FAILURE);
+    }
+
+    printf("CONNECTED!!!\n");
+
+    //TODO: READ AND WRITE STUFF
 }
