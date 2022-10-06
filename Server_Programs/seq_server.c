@@ -10,6 +10,7 @@
 
 #define HOST "127.0.0.1"            //defining host IP address
 #define PORT 1024
+#define zero_out(structure) memset(&structure, 0, sizeof(structure))    // MACRO FOR ZEROING
 
 int main(){
     int sockfd = 0;
@@ -19,9 +20,29 @@ int main(){
         exit(EXIT_FAILURE);
     }
 
-    struct sockaddr_in server;
+    printf("Socket FD is: %d\n", sockfd);
+    
 
-    bzero((void*) &server, sizeof(server));
-    server.sin_family = AF_INET;
-    server.sin_port   = 
+    struct sockaddr_in sock_addr;
+
+    zero_out(sock_addr);
+    sock_addr.sin_family = AF_INET;
+    sock_addr.sin_port   = htons(PORT);
+    sock_addr.sin_addr.s_addr = htons(INADDR_ANY);      //server can use any IP address which the local machine uses
+
+    //binding socket to IP
+    if((bind(sockfd, (struct sockaddr*) &sock_addr, sizeof(sock_addr))) != 0){
+        printf("Couldn't bind socked FD to IP address.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    if(listen(sockfd, 20) != 0){
+        printf("Couldn't listen");
+        exit(EXIT_FAILURE);
+    }
+
+    int n_bytes_client = 0;
+    struct sockaddr_in client;
+    int connect = accept(sockfd, (struct sockaddr*) &client, &n_bytes_client);
+    
 }

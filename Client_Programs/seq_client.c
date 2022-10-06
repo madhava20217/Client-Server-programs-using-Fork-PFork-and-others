@@ -10,6 +10,7 @@
 
 #define HOST "127.0.0.1"            //defining host IP address
 #define PORT 1024
+#define zero_out(structure) memset(&structure, 0, sizeof(structure))        //MACRO FOR ZEROING
 
 int main(){
     int sockfd = 0;
@@ -24,7 +25,7 @@ int main(){
 
     struct sockaddr_in sock_addr;
 
-    bzero((void*)&sock_addr, sizeof(sock_addr));
+    zero_out(sock_addr);
     sock_addr.sin_family = AF_INET;
     sock_addr.sin_port   = htons(PORT);
     sock_addr.sin_addr.s_addr = inet_addr(HOST);
