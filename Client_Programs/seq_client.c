@@ -58,7 +58,6 @@ int main(){
     else{
         printf("Connected to the server\n");
     }
-
     read_write_to_server(sockfd);
     
     close(sockfd);
