@@ -8,9 +8,24 @@
 #include <sys/socket.h>
 #include <errno.h>
 
+#define STR_SIZE 32                 //max length of string
 #define HOST "127.0.0.1"            //defining host IP address
 #define PORT 1024
 #define zero_out(structure) memset(&structure, 0, sizeof(structure))        //MACRO FOR ZEROING
+
+void read_write_to_server(int fd){
+    for(int i = 1; i <= 20; i++){
+        char str[STR_SIZE];
+        memset(str, 0, STR_SIZE);
+        sprintf(&str, "%d", i);
+        write(fd, str, sizeof(char)*STR_SIZE);
+        
+        //clear out string and receive response from server
+        memset(str, 0, STR_SIZE);
+        read(fd, str, STR_SIZE);            //blocking call!
+        printf("RESPONSE FROM SERVER FOR i = %d: %s\n", i, str);
+    }
+}
 
 int main(){
     int sockfd = 0;

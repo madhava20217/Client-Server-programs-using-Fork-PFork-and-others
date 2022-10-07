@@ -12,6 +12,17 @@
 #define PORT 1024
 #define zero_out(structure) memset(&structure, 0, sizeof(structure))    // MACRO FOR ZEROING
 
+int factorial(int n){
+    /// @brief Function for getting factorial
+    /// @param n : integer for which factorial is to be calculated
+    /// @return factorial of the number n
+    int ret = 1;
+    for(int i= 1; i <= n; i++){
+        ret*=i;
+    }
+    return ret;
+}
+
 int main(){
     int sockfd = 0;
     //creating a TCP socket with IP protocol
@@ -52,4 +63,6 @@ int main(){
     printf("CONNECTED!!!\n");
 
     //TODO: READ AND WRITE STUFF
+
+
 }
