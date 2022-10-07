@@ -24,8 +24,7 @@ long long factorial(long long n){
     return ret;
 }
 
-void read_write_to_client(int fd, struct sockaddr_in* client){
-    FILE* fptr = fopen("../OUTPUT.txt", "w+");
+void read_write_to_client(int fd, FILE* fptr, struct sockaddr_in* client){
     char str[STR_SIZE];
     while(1){
         //check for msg from client
@@ -88,9 +87,10 @@ int main(){
     }
 
     printf("CONNECTED!!!\n");
+    FILE* fptr = fopen("../OUTPUT.txt", "w+");
 
     //TODO: READ AND WRITE STUFF
-    read_write_to_client(connect, &client);
+    read_write_to_client(connect, fptr, &client);
 
 
 }

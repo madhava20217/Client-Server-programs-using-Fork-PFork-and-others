@@ -12,6 +12,7 @@
 #define HOST "127.0.0.1"            //defining host IP address
 #define PORT 1024
 #define zero_out(structure) memset(&structure, 0, sizeof(structure))        //MACRO FOR ZEROING
+int CLIENT_ID = 0;
 
 void read_write_to_server(int fd){
     for(int i = 1; i <= 20; i++){
