@@ -8,19 +8,45 @@
 #include <sys/socket.h>
 #include <errno.h>
 
+#define STR_SIZE 32                 //max length of string
 #define HOST "127.0.0.1"            //defining host IP address
 #define PORT 1024
 #define zero_out(structure) memset(&structure, 0, sizeof(structure))    // MACRO FOR ZEROING
 
-int factorial(int n){
+long long factorial(long long n){
     /// @brief Function for getting factorial
     /// @param n : integer for which factorial is to be calculated
     /// @return factorial of the number n
-    int ret = 1;
+    long long ret = 1;
     for(int i= 1; i <= n; i++){
         ret*=i;
     }
     return ret;
+}
+
+void read_write_to_client(int fd, struct sockaddr_in* client){
+    FILE* fptr = fopen("../OUTPUT.txt", "w+");
+    char str[STR_SIZE];
+    while(1){
+        //check for msg from client
+        char str[STR_SIZE];
+        memset(str, 0, STR_SIZE);
+        read(fd, str, STR_SIZE);            //blocking call!
+
+        printf("MESSAGE FROM CLIENT: %s\n", str);
+
+        int num = atoi(str);
+        if(num == -1) {
+            //exit condition
+            break;
+        }
+        fprintf(fptr, "FACTORIAL FROM CLIENT %s:%d FOR (i = %d) = %lld\n", 
+            inet_ntoa(client->sin_addr),
+            client->sin_port,
+            num,
+            factorial(num)
+            );
+    }
 }
 
 int main(){
@@ -63,6 +89,7 @@ int main(){
     printf("CONNECTED!!!\n");
 
     //TODO: READ AND WRITE STUFF
+    read_write_to_client(connect, &client);
 
 
 }

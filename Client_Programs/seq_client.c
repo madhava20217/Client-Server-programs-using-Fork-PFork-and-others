@@ -17,14 +17,16 @@ void read_write_to_server(int fd){
     for(int i = 1; i <= 20; i++){
         char str[STR_SIZE];
         memset(str, 0, STR_SIZE);
-        sprintf(&str, "%d", i);
+        sprintf(str, "%d", i);
         write(fd, str, sizeof(char)*STR_SIZE);
+        printf("WRITTEN TO SERVER, val = %d\n", i);
         
-        //clear out string and receive response from server
-        memset(str, 0, STR_SIZE);
-        read(fd, str, STR_SIZE);            //blocking call!
-        printf("RESPONSE FROM SERVER FOR i = %d: %s\n", i, str);
     }
+    //exit message
+    char str[STR_SIZE];
+    memset(str, 0, STR_SIZE);
+    sprintf(str, "%d", -1);
+    write(fd, str, sizeof(char)*STR_SIZE);
 }
 
 int main(){
@@ -55,4 +57,8 @@ int main(){
     else{
         printf("Connected to the server\n");
     }
+
+    read_write_to_server(sockfd);
+    
+    close(sockfd);
 }
