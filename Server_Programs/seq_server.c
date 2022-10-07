@@ -33,7 +33,7 @@ void read_write_to_client(int fd, struct sockaddr_in* client){
         memset(str, 0, STR_SIZE);
         read(fd, str, STR_SIZE);            //blocking call!
 
-        printf("MESSAGE FROM CLIENT: %s\n", str);
+        //printf("MESSAGE FROM CLIENT: %s\n", str);
 
         int num = atoi(str);
         if(num == -1) {
@@ -47,6 +47,7 @@ void read_write_to_client(int fd, struct sockaddr_in* client){
             factorial(num)
             );
     }
+    printf("Received messages from client, printed to OUTPUT.txt.\nExiting...\n");
 }
 
 int main(){
