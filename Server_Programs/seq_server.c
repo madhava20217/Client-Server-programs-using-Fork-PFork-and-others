@@ -39,14 +39,15 @@ void read_write_to_client(int fd, FILE* fptr, struct sockaddr_in* client){
             //exit condition
             break;
         }
-        fprintf(fptr, "FACTORIAL FROM CLIENT %s:%d FOR (i = %d) = %lld\n", 
+        fprintf(fptr, "%s:%d,%d,%lld\n", 
             inet_ntoa(client->sin_addr),
             client->sin_port,
             num,
             factorial(num)
             );
+        sync();
     }
-    printf("Received messages from client, printed to OUTPUT.txt.\nExiting...\n");
+    printf("Received messages from client, printed to OUTPUT_SEQ.csv.\nExiting...\n");
 }
 
 int main(){
@@ -87,9 +88,10 @@ int main(){
     }
 
     printf("CONNECTED!!!\n");
-    FILE* fptr = fopen("../OUTPUT.txt", "w+");
+    FILE* fptr = fopen("../OUTPUT_SEQ.csv", "w+");
+    fprintf(fptr, "Client,i,Factorial\n");
+    sync();
 
-    //TODO: READ AND WRITE STUFF
     read_write_to_client(connect, fptr, &client);
     fclose(fptr);
     close(connect);

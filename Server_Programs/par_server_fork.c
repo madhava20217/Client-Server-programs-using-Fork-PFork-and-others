@@ -40,16 +40,22 @@ void read_write_to_client(int fd, FILE* fptr, struct sockaddr_in* client){
             //exit condition
             break;
         }
-        fprintf(fptr, "FACTORIAL FROM CLIENT %s:%d FOR (i = %d) = %lld\n", 
+        fprintf(fptr, "%s:%d,%d,%lld\n", 
             inet_ntoa(client->sin_addr),
             client->sin_port,
             num,
             factorial(num)
             );
+        sync();
     }
-    printf("Received messages from client %s:%d, printed to OUTPUT.txt.\nExiting...\n", 
+    printf("Received messages from client %s:%d, printed to OUTPUT_PAR_FORK.csv.\nExiting...\n", 
             inet_ntoa(client->sin_addr),
             client->sin_port);
+}
+
+void print_header(FILE* fptr){
+    fprintf(fptr, "Client,i,Factorial\n");
+    sync();
 }
 
 int main(){
@@ -59,7 +65,10 @@ int main(){
         printf("Socket could not be created\nExiting...\n");
         exit(EXIT_FAILURE);
     }
-
+    // Opening file for printing
+    FILE* fptr = fopen("../OUTPUT_PAR_FORK.csv", "w+");
+    print_header(fptr);
+    fflush(NULL);
     //printf("Socket FD is: %d\n", sockfd);
     
 
@@ -70,9 +79,7 @@ int main(){
     sock_addr.sin_port   = htons(PORT);
     sock_addr.sin_addr.s_addr = htons(INADDR_ANY);      //server can use any IP address which the local machine uses
 
-    // Opening file for printing
-    //printf("CONNECTED!!!\n");
-    FILE* fptr = fopen("../OUTPUT.txt", "w+");
+    
 
     //binding socket to IP
     if((bind(sockfd, (struct sockaddr*) &sock_addr, sizeof(sock_addr))) != 0){
@@ -88,13 +95,17 @@ int main(){
     struct sockaddr_in client;
     int n_bytes_client = sizeof(client);
 
-    for(int i = 0; i < MAX_CLIENTS;i++){
+    int connected = 0;
+    while(1){
+        
         int connect = accept(sockfd, (struct sockaddr*) &client, &n_bytes_client);
         if(connect < 0){
             printf("Couldn't connect");
             exit(EXIT_FAILURE);
         }
+        connected++;
         pid_t forking = fork();
+
         if(forking == 0){
             //child process
             close(sockfd);
@@ -103,6 +114,8 @@ int main(){
             close(connect);
             break;
         }
+        printf("CONNECTED : %d\n", connected);
+        if(connected == MAX_CLIENTS) exit(0);
     }
 
     return 0;
