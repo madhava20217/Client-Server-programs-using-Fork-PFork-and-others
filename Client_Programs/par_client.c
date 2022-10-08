@@ -32,43 +32,6 @@ void read_write_to_server(int fd){
     printf("Sent messages to server, exiting now...\n");
 }
 
-void exit_message(){
-    int sockfd = 0;
-    //creating a TCP socket with IP protocol
-    if((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1){
-        printf("Socket could not be created\nExiting...\n");
-        exit(EXIT_FAILURE);
-    }
-
-    printf("Socket FD is: %d\n", sockfd);
-    
-
-    struct sockaddr_in sock_addr;
-
-    zero_out(sock_addr);
-    sock_addr.sin_family = AF_INET;
-    sock_addr.sin_port   = htons(PORT);
-    sock_addr.sin_addr.s_addr = inet_addr(HOST);
-
-    int ERR;
-    if((ERR = connect(sockfd, (struct sockaddr *) &sock_addr, sizeof(sock_addr))) != 0){
-        printf("\n\nConnection with server failed\n");
-        printf("ERROR CODE: %d,\nDescription: %s\n", ERR, strerror(errno));
-
-        exit(EXIT_FAILURE);
-    }
-    else{
-        printf("Connected to the server\n");
-    }
-    printf("sockfd: %d\n", sockfd);
-
-    //exit message
-    char str[STR_SIZE];
-    memset(str, 0, STR_SIZE);
-    sprintf(str, "%d", -1);
-    write(sockfd, str, sizeof(char)*STR_SIZE);
-}
-
 void* main_function(void* args){
     int sockfd = 0;
     //creating a TCP socket with IP protocol
@@ -100,6 +63,12 @@ void* main_function(void* args){
     printf("sockfd: %d\n", sockfd);
     read_write_to_server(sockfd);
     
+    //exit message
+    char str[STR_SIZE];
+    memset(str, 0, STR_SIZE);
+    sprintf(str, "%d", -1);
+    write(sockfd, str, sizeof(char)*STR_SIZE);
+
     close(sockfd);
 }
 
@@ -110,5 +79,4 @@ int main(){
         pthread_create(threads+i, NULL, &main_function, NULL);
         pthread_join(threads[i], NULL);   
     }
-    exit_message();   
 }
