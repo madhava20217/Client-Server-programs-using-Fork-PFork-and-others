@@ -98,7 +98,7 @@ int main(){
     zero_out(sock_addr);
     sock_addr.sin_family = AF_INET;
     sock_addr.sin_port   = htons(PORT);
-    sock_addr.sin_addr.s_addr = inet_addr(HOST);  //htons(INADDR_ANY);      //server can use any IP address which the local machine uses
+    sock_addr.sin_addr.s_addr = htons(INADDR_ANY);      //server can use any IP address which the local machine uses
 
     // Opening file for printing
     //printf("CONNECTED!!!\n");
@@ -118,16 +118,7 @@ int main(){
     }
 
 
-    pthread_t threads[MAX_CLIENTS];
-    for(int i = 0; i < MAX_CLIENTS;i++){
-        struct thread_data d = {sockfd, fptr};
-        pthread_create(threads+i, NULL, serv_functions, &d);
-    }
-
-    for(int i = 0; i < MAX_CLIENTS;i++){
-        pthread_join(threads[i], NULL);
-    }
-
+    
     return 0;
 
     
