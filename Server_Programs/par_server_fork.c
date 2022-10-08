@@ -85,8 +85,8 @@ int main(){
         exit(EXIT_FAILURE);
     }
 
-    int n_bytes_client = 0;
     struct sockaddr_in client;
+    int n_bytes_client = sizeof(client);
 
     for(int i = 0; i < MAX_CLIENTS;i++){
         int connect = accept(sockfd, (struct sockaddr*) &client, &n_bytes_client);

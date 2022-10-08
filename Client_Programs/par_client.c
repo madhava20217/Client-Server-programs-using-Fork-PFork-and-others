@@ -21,7 +21,7 @@ void read_write_to_server(int fd){
         char str[STR_SIZE];
         memset(str, 0, STR_SIZE);
         sprintf(str, "%d", i);
-        write(fd, str, sizeof(char)*STR_SIZE);
+        write(fd, str, sizeof(str));
         //printf("WRITTEN TO SERVER, val = %d\n", i);
     }
     // //exit message
@@ -67,7 +67,7 @@ void* main_function(void* args){
     char str[STR_SIZE];
     memset(str, 0, STR_SIZE);
     sprintf(str, "%d", -1);
-    write(sockfd, str, sizeof(char)*STR_SIZE);
+    send(sockfd, str, sizeof(str), 0);
 
     close(sockfd);
 }
