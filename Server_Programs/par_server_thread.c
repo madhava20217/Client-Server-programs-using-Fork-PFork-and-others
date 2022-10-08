@@ -71,7 +71,7 @@ void* serv_functions(void* args){
     FILE* fptr = data->file_ptr;
 
     struct sockaddr_in client;
-    int n_bytes_client = 0;
+    int n_bytes_client = sizeof(client);
     int connect = accept(sockfd, (struct sockaddr*) &client, &n_bytes_client);
     if(connect < 0){
         printf("Couldn't connect");
