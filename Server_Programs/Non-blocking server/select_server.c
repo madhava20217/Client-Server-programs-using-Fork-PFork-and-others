@@ -115,18 +115,65 @@ int main(){
         exit(EXIT_FAILURE);
     }
 
-    fd_set 
+    fd_set current_socs, prev_socs;
+    FD_SET(sockfd, &prev_socs);
 
+    struct sockaddr_in clients[MAX_CLIENTS];            //array of connections
+    int client_fd_map[MAX_CLIENTS];                     //array of client to fd mapping
+    memset(client_fd_map, -1, sizeof(client_fd_map));   //init to 0
+
+
+    int num_clients = 0;
     while(1){
+        //current to prev update
+        current_socs = prev_socs;
 
-        struct sockaddr_in client;
-        int client_size = sizeof(client);
-        int client_socket = accept(sockfd, (struct sockaddr*) &client, &client_size);
+        //select syscall to know what changed
+        if(select(2*MAX_CLIENTS, &current_socs, NULL, NULL, NULL) < 0){
+            //error!
+            perror(strerror(errno));
+            exit(EXIT_FAILURE);
+        }
 
-        fptr = fopen("../../OUTPUT_SELECT.csv", "a");
-        struct thread_data data = {client_socket, fptr, client};
-        serv_functions(&data);
-        fclose(fptr);                                               //synchronisation, else gets stuck in the buffer
+        //iterate over set of fds
+        for(int i = 0; i < 2*MAX_CLIENTS; i++){
+            if(FD_ISSET(i, &current_socs)){
+                if(i == sockfd){
+                    struct sockaddr_in client;
+                    int client_size = sizeof(client);
+                    int client_socket = accept(sockfd, (struct sockaddr*) &client, &client_size);
+
+                    //add to array
+                    clients[num_clients]       = client;
+                    client_fd_map[num_clients] =  client_socket;
+                    num_clients++;
+                }
+                else{
+                    //it's some other socket, which means we need to read/write stuff
+
+                    //finding client info
+                    struct sockaddr_in client;
+                    for(int j = 0; j < MAX_CLIENTS; j++){
+                        if(client_fd_map[j] == i){
+                            client = clients[j];
+                            break;
+                        }
+                    }
+
+                    //read and write time
+                    struct thread_data data = {i, fptr, client};
+                    serv_functions(&data);
+                }
+            }
+        }
+
+        // struct sockaddr_in client;
+        // int client_size = sizeof(client);
+        // int client_socket = accept(sockfd, (struct sockaddr*) &client, &client_size);
+
+ 
+        // struct thread_data data = {client_socket, fptr, client};
+        // serv_functions(&data);
     }
 
     sync();
