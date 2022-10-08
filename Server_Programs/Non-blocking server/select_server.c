@@ -16,6 +16,8 @@
 #define PORT 1024                   //defining port number
 #define zero_out(structure) memset(&structure, 0, sizeof(structure))    // MACRO FOR ZEROING
 
+int done = 0;                       //tracks done clients, for time tracking
+
 long long factorial(long long n);
 void read_write_to_client(int fd, FILE* fptr, struct sockaddr_in* client);
 void* serv_functions(void* args);
@@ -48,6 +50,7 @@ void read_write_to_client(int fd, FILE* fptr, struct sockaddr_in* client){
     usleep(3000);
     int num = atoi(str);
     if(num <= 0) return;
+    if(num == 20) done++;               //increment done by 1;
     fprintf(fptr, "%s:%d,%d,%lld\n", 
         inet_ntoa(client->sin_addr),
         client->sin_port,
@@ -169,8 +172,10 @@ int main(){
                 }
             }
         }
-
+        
         fclose(fptr);
+
+        if(done == MAX_CLIENTS) break;
     }
 
     sync();
