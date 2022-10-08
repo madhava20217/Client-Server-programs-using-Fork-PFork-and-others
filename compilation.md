@@ -11,4 +11,4 @@ par server fork:
     gcc par_server_fork.c -o par_server_fork;./par_server_fork
 
 par server pthread:
-    
+    gcc par_server_thread.c -o par_server_thread -lpthread;./par_server_thread

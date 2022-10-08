@@ -73,14 +73,12 @@ void* serv_functions(void* args){
     struct sockaddr_in client;
     int n_bytes_client = 0;
     int connect = accept(sockfd, (struct sockaddr*) &client, &n_bytes_client);
-        if(connect < 0){
-            printf("Couldn't connect");
-            exit(EXIT_FAILURE);
-        }
-        pid_t forking = fork();
-        //READ AND WRITE STUFF
-        read_write_to_client(connect, fptr, &client);
-        close(connect);
+    if(connect < 0){
+        printf("Couldn't connect");
+        exit(EXIT_FAILURE);
+    }
+    read_write_to_client(connect, fptr, &client);
+    close(connect);
 }
 
 int main(){
