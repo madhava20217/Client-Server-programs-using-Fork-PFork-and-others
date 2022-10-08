@@ -8,6 +8,7 @@
 #include <sys/socket.h>
 #include <errno.h>
 #include <pthread.h>
+#include <sys/select.h>             //for select syscall
 
 #define MAX_CLIENTS 10              //maximum clients that can be accommodated at once
 #define STR_SIZE 32                 //max length of string
@@ -23,6 +24,7 @@ void* serv_functions(void* args);
 struct thread_data{
     int sockfd;
     FILE* file_ptr;
+    struct sockaddr_in client;
 };
 
 
@@ -70,16 +72,9 @@ void* serv_functions(void* args){
     struct thread_data* data = (struct thread_data*) args;
     int sockfd = data->sockfd;
     FILE* fptr = data->file_ptr;
+    struct sockaddr_in client = data->client;
 
-    struct sockaddr_in client;
-    int n_bytes_client = sizeof(client);
-    int connect = accept(sockfd, (struct sockaddr*) &client, &n_bytes_client);
-    if(connect < 0){
-        printf("Couldn't connect");
-        exit(EXIT_FAILURE);
-    }
-    read_write_to_client(connect, fptr, &client);
-    close(connect);
+    read_write_to_client(sockfd, fptr, &client);
 }
 
 int main(){
@@ -102,9 +97,11 @@ int main(){
 
     // Opening file for printing
     //printf("CONNECTED!!!\n");
-    FILE* fptr = fopen("../../OUTPUT_PAR_THREAD.csv", "w+");
+    FILE* fptr;
+    fptr = fopen("../../OUTPUT_SELECT.csv", "w+");
     fprintf(fptr, "Client,i,Factorial\n");
     sync();
+    fclose(fptr);
 
     //binding socket to IP
     if((bind(sockfd, (struct sockaddr*) &sock_addr, sizeof(sock_addr))) != 0){
@@ -112,13 +109,28 @@ int main(){
         exit(EXIT_FAILURE);
     }
 
+    // 20 connection requests can be queued, the rest will be dropped
     if(listen(sockfd, 20) != 0){
         printf("Couldn't listen");
         exit(EXIT_FAILURE);
     }
 
+    fd_set 
 
-    
+    while(1){
+
+        struct sockaddr_in client;
+        int client_size = sizeof(client);
+        int client_socket = accept(sockfd, (struct sockaddr*) &client, &client_size);
+
+        fptr = fopen("../../OUTPUT_SELECT.csv", "a");
+        struct thread_data data = {client_socket, fptr, client};
+        serv_functions(&data);
+        fclose(fptr);                                               //synchronisation, else gets stuck in the buffer
+    }
+
+    sync();
+
     return 0;
 
     
