@@ -8,10 +8,9 @@
 #include <sys/socket.h>
 #include <errno.h>
 
-#define MAX_CLIENTS 10              //maximum clients that can be accommodated at once
 #define STR_SIZE 32                 //max length of string
 #define HOST "127.0.0.1"            //defining host IP address
-#define PORT 1024                   //defining port number
+#define PORT 1024
 #define zero_out(structure) memset(&structure, 0, sizeof(structure))    // MACRO FOR ZEROING
 
 long long factorial(long long n){
@@ -48,14 +47,7 @@ void read_write_to_client(int fd, FILE* fptr, struct sockaddr_in* client){
             );
         sync();
     }
-    printf("Received messages from client %s:%d, printed to OUTPUT_PAR_FORK.csv.\nExiting...\n", 
-            inet_ntoa(client->sin_addr),
-            client->sin_port);
-}
-
-void print_header(FILE* fptr){
-    fprintf(fptr, "Client,i,Factorial\n");
-    sync();
+    printf("Received messages from client, printed to OUTPUT_SEQ.csv.\nExiting...\n");
 }
 
 int main(){
@@ -65,11 +57,8 @@ int main(){
         printf("Socket could not be created\nExiting...\n");
         exit(EXIT_FAILURE);
     }
-    // Opening file for printing
-    FILE* fptr = fopen("../OUTPUT_PAR_FORK.csv", "w+");
-    print_header(fptr);
-    fflush(NULL);
-    //printf("Socket FD is: %d\n", sockfd);
+
+    printf("Socket FD is: %d\n", sockfd);
     
 
     struct sockaddr_in sock_addr;
@@ -78,8 +67,6 @@ int main(){
     sock_addr.sin_family = AF_INET;
     sock_addr.sin_port   = htons(PORT);
     sock_addr.sin_addr.s_addr = htons(INADDR_ANY);      //server can use any IP address which the local machine uses
-
-    
 
     //binding socket to IP
     if((bind(sockfd, (struct sockaddr*) &sock_addr, sizeof(sock_addr))) != 0){
@@ -92,37 +79,21 @@ int main(){
         exit(EXIT_FAILURE);
     }
 
+    int n_bytes_client = 0;
     struct sockaddr_in client;
-    int n_bytes_client = sizeof(client);
-
-    int connected = 0;
-    while(1){
-        
-        int connect = accept(sockfd, (struct sockaddr*) &client, &n_bytes_client);
-        if(connect < 0){
-            printf("Couldn't connect");
-            exit(EXIT_FAILURE);
-        }
-        connected++;
-        pid_t forking = fork();
-
-        if(forking == 0){
-            //child process
-            close(sockfd);
-            //READ AND WRITE STUFF
-            read_write_to_client(connect, fptr, &client);
-            close(connect);
-            break;
-        }
-        printf("CONNECTED : %d\n", connected);
-        if(connected == MAX_CLIENTS) exit(0);
+    int connect = accept(sockfd, (struct sockaddr*) &client, &n_bytes_client);
+    if(connect < 0){
+        printf("Couldn't connect");
+        exit(EXIT_FAILURE);
     }
 
-    return 0;
+    printf("CONNECTED!!!\n");
+    FILE* fptr = fopen("../../OUTPUT_SEQ.csv", "w+");
+    fprintf(fptr, "Client,i,Factorial\n");
+    sync();
 
-    
-
-    
-
+    read_write_to_client(connect, fptr, &client);
+    fclose(fptr);
+    close(connect);
 
 }

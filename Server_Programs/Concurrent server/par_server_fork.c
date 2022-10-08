@@ -7,24 +7,12 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <errno.h>
-#include <pthread.h>
 
 #define MAX_CLIENTS 10              //maximum clients that can be accommodated at once
 #define STR_SIZE 32                 //max length of string
 #define HOST "127.0.0.1"            //defining host IP address
 #define PORT 1024                   //defining port number
 #define zero_out(structure) memset(&structure, 0, sizeof(structure))    // MACRO FOR ZEROING
-
-long long factorial(long long n);
-void read_write_to_client(int fd, FILE* fptr, struct sockaddr_in* client);
-void* serv_functions(void* args);
-
-// sockfd is the socket file descriptor, file_ptr is the pointer to the open file
-struct thread_data{
-    int sockfd;
-    FILE* file_ptr;
-};
-
 
 long long factorial(long long n){
     /// @brief Function for getting factorial
@@ -60,26 +48,14 @@ void read_write_to_client(int fd, FILE* fptr, struct sockaddr_in* client){
             );
         sync();
     }
-    printf("Received messages from client %s:%d, printed to OUTPUT_PAR_THREAD.csv.\nExiting...\n", 
+    printf("Received messages from client %s:%d, printed to OUTPUT_PAR_FORK.csv.\nExiting...\n", 
             inet_ntoa(client->sin_addr),
             client->sin_port);
 }
 
-void* serv_functions(void* args){
-
-    struct thread_data* data = (struct thread_data*) args;
-    int sockfd = data->sockfd;
-    FILE* fptr = data->file_ptr;
-
-    struct sockaddr_in client;
-    int n_bytes_client = sizeof(client);
-    int connect = accept(sockfd, (struct sockaddr*) &client, &n_bytes_client);
-    if(connect < 0){
-        printf("Couldn't connect");
-        exit(EXIT_FAILURE);
-    }
-    read_write_to_client(connect, fptr, &client);
-    close(connect);
+void print_header(FILE* fptr){
+    fprintf(fptr, "Client,i,Factorial\n");
+    sync();
 }
 
 int main(){
@@ -89,7 +65,10 @@ int main(){
         printf("Socket could not be created\nExiting...\n");
         exit(EXIT_FAILURE);
     }
-
+    // Opening file for printing
+    FILE* fptr = fopen("../../OUTPUT_PAR_FORK.csv", "w+");
+    print_header(fptr);
+    fflush(NULL);
     //printf("Socket FD is: %d\n", sockfd);
     
 
@@ -100,11 +79,7 @@ int main(){
     sock_addr.sin_port   = htons(PORT);
     sock_addr.sin_addr.s_addr = htons(INADDR_ANY);      //server can use any IP address which the local machine uses
 
-    // Opening file for printing
-    //printf("CONNECTED!!!\n");
-    FILE* fptr = fopen("../OUTPUT_PAR_THREAD.csv", "w+");
-    fprintf(fptr, "Client,i,Factorial\n");
-    sync();
+    
 
     //binding socket to IP
     if((bind(sockfd, (struct sockaddr*) &sock_addr, sizeof(sock_addr))) != 0){
@@ -117,15 +92,30 @@ int main(){
         exit(EXIT_FAILURE);
     }
 
+    struct sockaddr_in client;
+    int n_bytes_client = sizeof(client);
 
-    pthread_t threads[MAX_CLIENTS];
-    for(int i = 0; i < MAX_CLIENTS;i++){
-        struct thread_data d = {sockfd, fptr};
-        pthread_create(threads+i, NULL, serv_functions, &d);
-    }
+    int connected = 0;
+    while(1){
+        
+        int connect = accept(sockfd, (struct sockaddr*) &client, &n_bytes_client);
+        if(connect < 0){
+            printf("Couldn't connect");
+            exit(EXIT_FAILURE);
+        }
+        connected++;
+        pid_t forking = fork();
 
-    for(int i = 0; i < MAX_CLIENTS;i++){
-        pthread_join(threads[i], NULL);
+        if(forking == 0){
+            //child process
+            close(sockfd);
+            //READ AND WRITE STUFF
+            read_write_to_client(connect, fptr, &client);
+            close(connect);
+            break;
+        }
+        printf("CONNECTED : %d\n", connected);
+        if(connected == MAX_CLIENTS) exit(0);
     }
 
     return 0;
