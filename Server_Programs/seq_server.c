@@ -91,6 +91,7 @@ int main(){
 
     //TODO: READ AND WRITE STUFF
     read_write_to_client(connect, fptr, &client);
-
+    fclose(fptr);
+    close(connect);
 
 }

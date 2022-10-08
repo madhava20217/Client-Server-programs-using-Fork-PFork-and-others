@@ -10,7 +10,7 @@
 
 #define STR_SIZE 32                 //max length of string
 #define HOST "127.0.0.1"            //defining host IP address
-int PORT = 1024;                    //defining port number
+#define PORT 1024                   //defining port number
 #define zero_out(structure) memset(&structure, 0, sizeof(structure))    // MACRO FOR ZEROING
 
 long long factorial(long long n){
@@ -84,12 +84,22 @@ int main(){
 
     int n_bytes_client = 0;
     struct sockaddr_in client;
-    int connect = accept(sockfd, (struct sockaddr*) &client, &n_bytes_client);
-    if(connect < 0){
-        printf("Couldn't connect");
-        exit(EXIT_FAILURE);
-    }
 
+    int server_procs = 0;
+
+    while(1){
+        int connect = accept(sockfd, (struct sockaddr*) &client, &n_bytes_client);
+        server_procs++;
+        if(connect < 0){
+            printf("Couldn't connect");
+            exit(EXIT_FAILURE);
+        }
+        pid_t forking = fork();
+        if(forking == 0){
+            //child process
+            
+        }
+    }
     
 
     //TODO: READ AND WRITE STUFF
