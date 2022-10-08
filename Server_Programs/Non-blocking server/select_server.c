@@ -40,31 +40,24 @@ long long factorial(long long n){
 }
 
 void read_write_to_client(int fd, FILE* fptr, struct sockaddr_in* client){
+    //check for msg from client
     char str[STR_SIZE];
-    while(1){
-        //check for msg from client
-        char str[STR_SIZE];
-        memset(str, 0, STR_SIZE);
-        read(fd, str, STR_SIZE);            //blocking call!
+    memset(str, 0, STR_SIZE);
+    read(fd, str, STR_SIZE);            //blocking call!
 
-        //printf("MESSAGE FROM CLIENT: %s\n", str);
-
-        int num = atoi(str);
-        if(num == -1) {
-            //exit condition
-            break;
-        }
-        fprintf(fptr, "%s:%d,%d,%lld\n", 
-            inet_ntoa(client->sin_addr),
-            client->sin_port,
-            num,
-            factorial(num)
-            );
-        sync();
-    }
-    printf("Received messages from client %s:%d, printed to OUTPUT_PAR_THREAD.csv.\nExiting...\n", 
-            inet_ntoa(client->sin_addr),
-            client->sin_port);
+    usleep(3000);
+    int num = atoi(str);
+    if(num <= 0) return;
+    fprintf(fptr, "%s:%d,%d,%lld\n", 
+        inet_ntoa(client->sin_addr),
+        client->sin_port,
+        num,
+        factorial(num)
+        );
+    sync();
+    // printf("Received messages from client %s:%d, printed to OUTPUT_PAR_THREAD.csv.\nExiting...\n", 
+    //         inet_ntoa(client->sin_addr),
+    //         client->sin_port);
 }
 
 void* serv_functions(void* args){
@@ -125,6 +118,9 @@ int main(){
 
     int num_clients = 0;
     while(1){
+
+        fptr = fopen("../../OUTPUT_SELECT.csv", "a");   //open fptr for sync
+
         //current to prev update
         current_socs = prev_socs;
 
@@ -142,6 +138,13 @@ int main(){
                     struct sockaddr_in client;
                     int client_size = sizeof(client);
                     int client_socket = accept(sockfd, (struct sockaddr*) &client, &client_size);
+
+                    if(client_socket < 0){
+                        perror(strerror(errno));
+                        exit(EXIT_FAILURE);
+                    }
+
+                    FD_SET(client_socket, &prev_socs);
 
                     //add to array
                     clients[num_clients]       = client;
@@ -167,13 +170,7 @@ int main(){
             }
         }
 
-        // struct sockaddr_in client;
-        // int client_size = sizeof(client);
-        // int client_socket = accept(sockfd, (struct sockaddr*) &client, &client_size);
-
- 
-        // struct thread_data data = {client_socket, fptr, client};
-        // serv_functions(&data);
+        fclose(fptr);
     }
 
     sync();
