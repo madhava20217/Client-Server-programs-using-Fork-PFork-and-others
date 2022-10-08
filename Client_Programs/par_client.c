@@ -60,8 +60,8 @@ void* main_function(void* args){
     else{
         printf("Connected to the server\n");
     }
-    printf("sockfd: %d\n", ERR);
-    read_write_to_server(ERR);
+    printf("sockfd: %d\n", sockfd);
+    read_write_to_server(sockfd);
     
     //exit message
     char str[STR_SIZE];

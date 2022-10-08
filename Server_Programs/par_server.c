@@ -97,13 +97,19 @@ int main(){
         pid_t forking = fork();
         if(forking == 0){
             //child process
-            
+            close(sockfd);
+            //READ AND WRITE STUFF
+            read_write_to_client(connect, fptr, &client);
+            close(connect);
+            break;
         }
     }
+
+    return 0;
+
     
 
-    //TODO: READ AND WRITE STUFF
-    read_write_to_client(connect, fptr, &client);
+    
 
 
 }
