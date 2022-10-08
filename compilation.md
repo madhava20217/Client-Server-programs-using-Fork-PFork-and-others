@@ -5,4 +5,10 @@ seq server:
 
 
 par client:
-    gcc par_client.c -o par_client -lpthread;
+    gcc par_client.c -o par_client -lpthread;./par_client
+
+par server fork:
+    gcc par_server_fork.c -o par_server_fork;./par_server_fork
+
+par server pthread:
+    

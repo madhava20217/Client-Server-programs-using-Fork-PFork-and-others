@@ -77,6 +77,8 @@ int main(){
     pthread_t threads[MAX_CLIENTS];
     for(int i = 0; i < MAX_CLIENTS; i++){
         pthread_create(threads+i, NULL, &main_function, NULL);
-        pthread_join(threads[i], NULL);   
+    }
+    for(int i = 0; i < MAX_CLIENTS; i++){
+        pthread_join(threads[i], NULL);  
     }
 }
