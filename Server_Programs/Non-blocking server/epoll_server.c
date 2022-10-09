@@ -8,7 +8,7 @@
 #include <sys/socket.h>
 #include <errno.h>
 #include <pthread.h>
-#include <poll.h>
+#include <sys/epoll.h>
 
 #define MAX_CLIENTS 10              //maximum clients that can be accommodated at once
 #define STR_SIZE 32                 //max length of string
@@ -97,7 +97,7 @@ int main(){
     // Opening file for printing
     //printf("CONNECTED!!!\n");
     FILE* fptr;
-    fptr = fopen("../../OUTPUT_POLL.csv", "w+");
+    fptr = fopen("../../OUTPUT_EPOLL.csv", "w+");
     fprintf(fptr, "Client,i,Factorial\n");
     sync();
     fclose(fptr);
@@ -114,14 +114,32 @@ int main(){
         exit(EXIT_FAILURE);
     }
 
-    struct pollfd poll_set[2*MAX_CLIENTS];      //for polling
-    int num_fds = 1;                            //including the first main fd
-    memset(poll_set, 0, sizeof(poll_set));
+    //create epoll instance
+    int epoll_fd = epoll_create1(0);
+    if(epoll_fd < 0){
+        //error
+        printf("ERROR WITH EPOLL! Exiting...\n");
+        exit(EXIT_FAILURE);
+    }
 
-    poll_set[0].fd = sockfd;
-    poll_set[0].events = POLLIN;
-    // fd_set current_socs, prev_socs;
-    // FD_SET(sockfd, &prev_socs);
+    struct epoll_event ep_ev, events[2*MAX_CLIENTS];        //for epoll, structures
+    ep_ev.events = EPOLLIN;
+    ep_ev.data.fd = sockfd;
+
+    if(epoll_ctl(epoll_fd, EPOLL_CTL_ADD, sockfd, &ep_ev) < 0){
+        //error
+        printf("Error adding main socket to epoll file descriptor\n");
+        exit(EXIT_FAILURE);
+    }
+
+    // struct pollfd poll_set[2*MAX_CLIENTS];      //for polling
+    // int num_fds = 1;                            //including the first main fd
+    // memset(poll_set, 0, sizeof(poll_set));
+
+    // poll_set[0].fd = sockfd;
+    // poll_set[0].events = POLLIN;
+    // // fd_set current_socs, prev_socs;
+    // // FD_SET(sockfd, &prev_socs);
 
     struct sockaddr_in clients[MAX_CLIENTS];            //array of connections
     int client_fd_map[MAX_CLIENTS];                     //array of client to fd mapping
@@ -132,63 +150,64 @@ int main(){
     int num_clients = 0;
     while(1){
 
-        fptr = fopen("../../OUTPUT_POLL.csv", "a");   //open fptr for sync
+        fptr = fopen("../../OUTPUT_EPOLL.csv", "a");   //open fptr for sync
 
-        int events;
-        if((events = poll(poll_set, num_fds, TIMEOUT)) < 0){
-            printf("Poll failed or timed out, exiting...\n");
+        int num_fds;
+
+        if((num_fds = epoll_wait(epoll_fd, events, 2*MAX_CLIENTS, TIMEOUT)) == -1){
+            //error here
+            printf("Error waiting for event or timed out\n");
             exit(EXIT_FAILURE);
         }
 
-        int current_size = num_fds;
-        //current to prev update
         //iterate over set of fds
-        for(int i = 0; i < current_size; i++){
-            if(poll_set[i].revents == 0) continue; //nothing to report here
-            if(poll_set[i].revents != POLLIN){
-                //something went wrong
-                printf("Something went wrong with the server, unintended behaviour observed\n");
-                exit(EXIT_FAILURE);
-            }
-            else{
-                if(poll_set[i].fd == sockfd){
-                    printf("CONNECTION\n");
-                    //main socket, accept client
-                    struct sockaddr_in client;
-                    int client_size = sizeof(client);
-                    int client_socket = accept(sockfd, (struct sockaddr*) &client, &client_size);
+        for(int i = 0; i < num_fds; i++){
+            if(events[i].data.fd == sockfd){
+                printf("CONNECTION\n");
+                //main socket, accept client
+                struct sockaddr_in client;
+                int client_size = sizeof(client);
+                int client_socket = accept(sockfd, (struct sockaddr*) &client, &client_size);
 
-                    if(client_socket < 0){
-                        perror(strerror(errno));
-                        exit(EXIT_FAILURE);
-                    }
-
-                    //add it to the polling set
-                    poll_set[num_fds].fd = client_socket;
-                    poll_set[num_fds++].events = POLLIN;
-
-
-                    //add to array
-                    clients[num_clients]       = client;
-                    client_fd_map[num_clients] =  client_socket;
-                    num_clients++;
+                if(client_socket < 0){
+                    perror(strerror(errno));
+                    exit(EXIT_FAILURE);
                 }
-                else{
+
+                struct epoll_event ev;
+                // struct thread_data info;
+                // info.client = client;
+                // info.sockfd = client_socket;
+                // info.file_ptr = NULL;
+                ev.events = EPOLLIN;
+                ev.data.fd = client_socket;
+                    //add it to the polling set
+                if(epoll_ctl(epoll_fd, EPOLL_CTL_ADD, client_socket, &ev) == -1){
+                    //error
+                    printf("Error adding client to poll. Exiting\n");
+                    exit(EXIT_FAILURE);
+                }
+
+                //add to array
+                clients[num_clients]       = client;
+                client_fd_map[num_clients] =  client_socket;
+                num_clients++;
+                }
+            else{
                     //it's some other socket, which means we need to read/write stuff
 
                     //finding client info
-                    struct sockaddr_in client;
-                    for(int j = 0; j < MAX_CLIENTS; j++){
-                        if(client_fd_map[j] == poll_set[i].fd){
-                            client = clients[j];
-                            break;
-                        }
+                struct sockaddr_in client;
+                for(int j = 0; j < MAX_CLIENTS; j++){
+                    if(client_fd_map[j] == events[i].data.fd){
+                        client = clients[j];
+                        break;
                     }
-
-                    //read and write time
-                    struct thread_data data = {poll_set[i].fd, fptr, client};
-                    serv_functions(&data);
                 }
+
+                //read and write time
+                struct thread_data data = {events[i].data.fd, fptr, client};
+                serv_functions(&data);
             }
         }
         
