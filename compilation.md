@@ -12,3 +12,13 @@ par server fork:
 
 par server pthread:
     gcc par_server_thread.c -o par_server_thread -lpthread;./par_server_thread
+
+
+server select:
+    gcc select_server.c -o select_server;./select_server
+
+server poll:
+    gcc poll_server.c -o poll_server;./poll_server
+
+server epoll:
+    gcc epoll_server.c -o epoll_server;./epoll_server
