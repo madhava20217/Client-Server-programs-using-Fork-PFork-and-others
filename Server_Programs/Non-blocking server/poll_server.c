@@ -8,7 +8,7 @@
 #include <sys/socket.h>
 #include <errno.h>
 #include <pthread.h>
-#include <sys/select.h>             //for select syscall
+#include <poll.h>
 
 #define MAX_CLIENTS 10              //maximum clients that can be accommodated at once
 #define STR_SIZE 32                 //max length of string
@@ -50,7 +50,10 @@ void read_write_to_client(int fd, FILE* fptr, struct sockaddr_in* client){
     usleep(3000);
     int num = atoi(str);
     if(num <= 0) return;
-    if(num == 20) done++;               //increment done by 1;
+    if(num == 20) {
+        done++;               //increment done by 1;
+        // close(fd);
+    }
     fprintf(fptr, "%s:%d,%d,%lld\n", 
         inet_ntoa(client->sin_addr),
         client->sin_port,
@@ -111,33 +114,46 @@ int main(){
         exit(EXIT_FAILURE);
     }
 
-    fd_set current_socs, prev_socs;
-    FD_SET(sockfd, &prev_socs);
+    struct pollfd poll_set[2*MAX_CLIENTS];      //for polling
+    int num_fds = 1;                            //including the first main fd
+    memset(poll_set, 0, sizeof(poll_set));
+
+    poll_set[0].fd = sockfd;
+    poll_set[0].events = POLLIN;
+    // fd_set current_socs, prev_socs;
+    // FD_SET(sockfd, &prev_socs);
 
     struct sockaddr_in clients[MAX_CLIENTS];            //array of connections
     int client_fd_map[MAX_CLIENTS];                     //array of client to fd mapping
     memset(client_fd_map, -1, sizeof(client_fd_map));   //init to 0
 
+    int TIMEOUT = 10*1000;                              //timeout initialised to 60 seconds
 
     int num_clients = 0;
     while(1){
 
-        fptr = fopen("../../OUTPUT_SELECT.csv", "a");   //open fptr for sync
+        fptr = fopen("../../OUTPUT_POLL.csv", "a");   //open fptr for sync
 
-        //current to prev update
-        current_socs = prev_socs;
-
-        //select syscall to know what changed
-        if(select(2*MAX_CLIENTS, &current_socs, NULL, NULL, NULL) < 0){
-            //error!
-            perror(strerror(errno));
+        int events;
+        if((events = poll(poll_set, num_fds, TIMEOUT)) < 0){
+            printf("Poll failed or timed out, exiting...\n");
             exit(EXIT_FAILURE);
         }
 
+        int current_size = num_fds;
+        //current to prev update
         //iterate over set of fds
-        for(int i = 0; i < 2*MAX_CLIENTS; i++){
-            if(FD_ISSET(i, &current_socs)){
-                if(i == sockfd){
+        for(int i = 0; i < current_size; i++){
+            if(poll_set[i].revents == 0) continue; //nothing to report here
+            if(poll_set[i].revents != POLLIN){
+                //something went wrong
+                printf("Something went wrong with the server, unintended behaviour observed\n");
+                exit(EXIT_FAILURE);
+            }
+            else{
+                if(poll_set[i].fd == sockfd){
+                    printf("CONNECTION\n");
+                    //main socket, accept client
                     struct sockaddr_in client;
                     int client_size = sizeof(client);
                     int client_socket = accept(sockfd, (struct sockaddr*) &client, &client_size);
@@ -147,7 +163,10 @@ int main(){
                         exit(EXIT_FAILURE);
                     }
 
-                    FD_SET(client_socket, &prev_socs);
+                    //add it to the polling set
+                    poll_set[num_fds].fd = client_socket;
+                    poll_set[num_fds++].events = POLLIN;
+
 
                     //add to array
                     clients[num_clients]       = client;
@@ -160,14 +179,14 @@ int main(){
                     //finding client info
                     struct sockaddr_in client;
                     for(int j = 0; j < MAX_CLIENTS; j++){
-                        if(client_fd_map[j] == i){
+                        if(client_fd_map[j] == poll_set[i].fd){
                             client = clients[j];
                             break;
                         }
                     }
 
                     //read and write time
-                    struct thread_data data = {i, fptr, client};
+                    struct thread_data data = {poll_set[i].fd, fptr, client};
                     serv_functions(&data);
                 }
             }
