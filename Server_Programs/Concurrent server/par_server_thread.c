@@ -8,7 +8,9 @@
 #include <sys/socket.h>
 #include <errno.h>
 #include <pthread.h>
+#include <time.h>
 
+static time_t start;
 #define MAX_CLIENTS 10              //maximum clients that can be accommodated at once
 #define STR_SIZE 32                 //max length of string
 #define HOST "127.0.0.1"            //defining host IP address
@@ -23,6 +25,7 @@ void* serv_functions(void* args);
 struct thread_data{
     int sockfd;
     FILE* file_ptr;
+    int client_no;
 };
 
 
@@ -70,6 +73,10 @@ void* serv_functions(void* args){
     struct thread_data* data = (struct thread_data*) args;
     int sockfd = data->sockfd;
     FILE* fptr = data->file_ptr;
+    int client_no = data->client_no;
+    if(client_no == 0){
+        start = clock();
+    }
 
     struct sockaddr_in client;
     int n_bytes_client = sizeof(client);
@@ -120,13 +127,17 @@ int main(){
 
     pthread_t threads[MAX_CLIENTS];
     for(int i = 0; i < MAX_CLIENTS;i++){
-        struct thread_data d = {sockfd, fptr};
+        struct thread_data d = {sockfd, fptr, i};
         pthread_create(threads+i, NULL, serv_functions, &d);
     }
 
     for(int i = 0; i < MAX_CLIENTS;i++){
         pthread_join(threads[i], NULL);
     }
+
+    time_t end = clock();
+
+    printf("\n\nEXECUTION TIME : %.9f\n\n", ((double)end - start)/CLOCKS_PER_SEC);
 
     return 0;
 
