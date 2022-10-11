@@ -104,7 +104,6 @@ int main(){
     fptr = fopen("../../OUTPUT_POLL.csv", "w+");
     fprintf(fptr, "Client,i,Factorial\n");
     sync();
-    fclose(fptr);
 
     //binding socket to IP
     if((bind(sockfd, (struct sockaddr*) &sock_addr, sizeof(sock_addr))) != 0){
@@ -136,7 +135,7 @@ int main(){
     int num_clients = 0;
     while(1){
 
-        fptr = fopen("../../OUTPUT_POLL.csv", "a");   //open fptr for sync
+        //fptr = fopen("../../OUTPUT_POLL.csv", "a");   //open fptr for sync
 
         int events;
         if((events = poll(poll_set, num_fds, TIMEOUT)) < 0){
@@ -198,11 +197,10 @@ int main(){
                 }
             }
         }
-        
-        fclose(fptr);
 
         if(done == MAX_CLIENTS) break;
     }
+    fclose(fptr);
     time_t end = clock();
     sync();
     printf("\n\nEXECUTION TIME : %.9f\n\n", ((double)end - start)/CLOCKS_PER_SEC);
