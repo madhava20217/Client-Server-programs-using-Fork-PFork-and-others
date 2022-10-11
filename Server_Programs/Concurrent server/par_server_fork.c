@@ -10,7 +10,7 @@
 #include <sys/wait.h>
 #include <time.h>
 
-#define QUEUE 1000                      //QUEUE UP CLIENTS!
+#define QUEUE 200                      //QUEUE UP CLIENTS!
 #define MAX_CLIENTS QUEUE              //maximum clients that can be accommodated at once
 #define STR_SIZE 32                 //max length of string
 #define HOST "127.0.0.1"            //defining host IP address
@@ -51,9 +51,9 @@ void read_write_to_client(int fd, FILE* fptr, struct sockaddr_in* client){
             );
         sync();
     }
-    printf("Received messages from client %s:%d, printed to OUTPUT_PAR_FORK.csv. Exiting...\n", 
-            inet_ntoa(client->sin_addr),
-            client->sin_port);
+    // printf("Received messages from client %s:%d, printed to OUTPUT_PAR_FORK.csv. Exiting...\n", 
+    //         inet_ntoa(client->sin_addr),
+    //         client->sin_port);
     exit(EXIT_SUCCESS);
 }
 
