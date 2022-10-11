@@ -12,7 +12,7 @@
 #include <time.h>
 
 #define LIMIT 20                   //limit for factorial
-#define MAX_CLIENTS 10              //maximum clients that can be accommodated at once
+#define MAX_CLIENTS 10            //maximum clients that can be accommodated at once
 #define STR_SIZE 32                 //max length of string
 #define HOST "127.0.0.1"            //defining host IP address
 #define PORT 1024                   //defining port number
@@ -56,12 +56,12 @@ void read_write_to_client(int fd, FILE* fptr, struct sockaddr_in* client){
         done++;               //increment done by 1;
         // close(fd);
     }
-    // fprintf(fptr, "%s:%d,%d,%lld\n", 
-    //     inet_ntoa(client->sin_addr),
-    //     client->sin_port,
-    //     num,
-    //     factorial(num)
-    //     );
+    fprintf(fptr, "%s:%d,%d,%lld\n", 
+        inet_ntoa(client->sin_addr),
+        client->sin_port,
+        num,
+        factorial(num)
+        );
     sync();
     // printf("Received messages from client %s:%d, printed to OUTPUT_PAR_THREAD.csv.\nExiting...\n", 
     //         inet_ntoa(client->sin_addr),
