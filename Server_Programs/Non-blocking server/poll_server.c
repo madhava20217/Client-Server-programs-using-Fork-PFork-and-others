@@ -9,8 +9,12 @@
 #include <errno.h>
 #include <pthread.h>
 #include <poll.h>
+#include <time.h>
 
-#define MAX_CLIENTS 10              //maximum clients that can be accommodated at once
+time_t start;
+#define QUEUE 20                   //QUEUE UP CLASS! ALPHABETICALLY
+#define LIMIT 20
+#define MAX_CLIENTS QUEUE              //maximum clients that can be accommodated at once
 #define STR_SIZE 32                 //max length of string
 #define HOST "127.0.0.1"            //defining host IP address
 #define PORT 1024                   //defining port number
@@ -47,10 +51,9 @@ void read_write_to_client(int fd, FILE* fptr, struct sockaddr_in* client){
     memset(str, 0, STR_SIZE);
     read(fd, str, STR_SIZE);            //blocking call!
 
-    usleep(3000);
     int num = atoi(str);
     if(num <= 0) return;
-    if(num == 20) {
+    if(num == LIMIT) {
         done++;               //increment done by 1;
         // close(fd);
     }
@@ -86,6 +89,7 @@ int main(){
 
     //printf("Socket FD is: %d\n", sockfd);
     
+    printf("PID IS : %d\n\n", getpid());
 
     struct sockaddr_in sock_addr;
 
@@ -100,7 +104,6 @@ int main(){
     fptr = fopen("../../OUTPUT_POLL.csv", "w+");
     fprintf(fptr, "Client,i,Factorial\n");
     sync();
-    fclose(fptr);
 
     //binding socket to IP
     if((bind(sockfd, (struct sockaddr*) &sock_addr, sizeof(sock_addr))) != 0){
@@ -109,7 +112,7 @@ int main(){
     }
 
     // 20 connection requests can be queued, the rest will be dropped
-    if(listen(sockfd, 20) != 0){
+    if(listen(sockfd, QUEUE) != 0){
         printf("Couldn't listen");
         exit(EXIT_FAILURE);
     }
@@ -127,12 +130,12 @@ int main(){
     int client_fd_map[MAX_CLIENTS];                     //array of client to fd mapping
     memset(client_fd_map, -1, sizeof(client_fd_map));   //init to 0
 
-    int TIMEOUT = 10*1000;                              //timeout initialised to 60 seconds
+    int TIMEOUT = 100*1000;                              //timeout initialised to 60 seconds
 
     int num_clients = 0;
     while(1){
 
-        fptr = fopen("../../OUTPUT_POLL.csv", "a");   //open fptr for sync
+        //fptr = fopen("../../OUTPUT_POLL.csv", "a");   //open fptr for sync
 
         int events;
         if((events = poll(poll_set, num_fds, TIMEOUT)) < 0){
@@ -152,15 +155,18 @@ int main(){
             }
             else{
                 if(poll_set[i].fd == sockfd){
-                    printf("CONNECTION\n");
+                    //printf("CONNECTION\n");
                     //main socket, accept client
                     struct sockaddr_in client;
                     int client_size = sizeof(client);
                     int client_socket = accept(sockfd, (struct sockaddr*) &client, &client_size);
-
+                    printf("CONNECTED %d, DONE: %d\n", num_clients, done);
                     if(client_socket < 0){
                         perror(strerror(errno));
                         exit(EXIT_FAILURE);
+                    }
+                    if(num_clients == 0){
+                        start = clock();
                     }
 
                     //add it to the polling set
@@ -191,13 +197,13 @@ int main(){
                 }
             }
         }
-        
-        fclose(fptr);
 
         if(done == MAX_CLIENTS) break;
     }
-
+    fclose(fptr);
+    time_t end = clock();
     sync();
+    printf("\n\nEXECUTION TIME : %.9f\n\n", ((double)end - start)/CLOCKS_PER_SEC);
 
     return 0;
 

@@ -8,9 +8,12 @@
 #include <sys/socket.h>
 #include <errno.h>
 #include <pthread.h>
+#include <time.h>
 #include <sys/select.h>             //for select syscall
 
-#define MAX_CLIENTS 10              //maximum clients that can be accommodated at once
+#define QUEUE 20                      //QUEUE UP CLASS!
+#define LIMIT 20
+#define MAX_CLIENTS QUEUE              //maximum clients that can be accommodated at once
 #define STR_SIZE 32                 //max length of string
 #define HOST "127.0.0.1"            //defining host IP address
 #define PORT 1024                   //defining port number
@@ -47,10 +50,9 @@ void read_write_to_client(int fd, FILE* fptr, struct sockaddr_in* client){
     memset(str, 0, STR_SIZE);
     read(fd, str, STR_SIZE);            //blocking call!
 
-    usleep(3000);
     int num = atoi(str);
     if(num <= 0) return;
-    if(num == 20) done++;               //increment done by 1;
+    if(num == LIMIT) done++;               //increment done by 1;
     fprintf(fptr, "%s:%d,%d,%lld\n", 
         inet_ntoa(client->sin_addr),
         client->sin_port,
@@ -82,7 +84,7 @@ int main(){
     }
 
     //printf("Socket FD is: %d\n", sockfd);
-    
+    printf("PID IS : %d\n\n", getpid());
 
     struct sockaddr_in sock_addr;
 
@@ -97,7 +99,7 @@ int main(){
     fptr = fopen("../../OUTPUT_SELECT.csv", "w+");
     fprintf(fptr, "Client,i,Factorial\n");
     sync();
-    fclose(fptr);
+    // fclose(fptr);
 
     //binding socket to IP
     if((bind(sockfd, (struct sockaddr*) &sock_addr, sizeof(sock_addr))) != 0){
@@ -106,7 +108,7 @@ int main(){
     }
 
     // 20 connection requests can be queued, the rest will be dropped
-    if(listen(sockfd, 20) != 0){
+    if(listen(sockfd, QUEUE) != 0){
         printf("Couldn't listen");
         exit(EXIT_FAILURE);
     }
@@ -120,9 +122,11 @@ int main(){
 
 
     int num_clients = 0;
+
+    time_t start;
     while(1){
 
-        fptr = fopen("../../OUTPUT_SELECT.csv", "a");   //open fptr for sync
+        //fptr = fopen("../../OUTPUT_SELECT.csv", "a");   //open fptr for sync
 
         //current to prev update
         current_socs = prev_socs;
@@ -130,6 +134,7 @@ int main(){
         //select syscall to know what changed
         if(select(2*MAX_CLIENTS, &current_socs, NULL, NULL, NULL) < 0){
             //error!
+            printf("NOTHING WORKS ANYMORE\n");
             perror(strerror(errno));
             exit(EXIT_FAILURE);
         }
@@ -142,13 +147,17 @@ int main(){
                     int client_size = sizeof(client);
                     int client_socket = accept(sockfd, (struct sockaddr*) &client, &client_size);
 
+                    printf("CONNECTED %d, DONE: %d\n", num_clients, done);
                     if(client_socket < 0){
+                        printf("ERROR CLIENT SOCKET\n");
                         perror(strerror(errno));
                         exit(EXIT_FAILURE);
                     }
 
                     FD_SET(client_socket, &prev_socs);
-
+                    if(num_clients == 0){
+                        start = clock();
+                    }
                     //add to array
                     clients[num_clients]       = client;
                     client_fd_map[num_clients] =  client_socket;
@@ -173,12 +182,14 @@ int main(){
             }
         }
         
-        fclose(fptr);
+        //fclose(fptr);
 
         if(done == MAX_CLIENTS) break;
     }
-
+    fclose(fptr);
+    time_t end = clock();
     sync();
+    printf("\n\nEXECUTION TIME : %.9f\n\n", ((double)end - start)/CLOCKS_PER_SEC);
 
     return 0;
 

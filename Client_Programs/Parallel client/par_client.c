@@ -9,8 +9,8 @@
 #include <errno.h>
 #include <pthread.h>
 
-#define LIMIT 20                //limit number of factorials
-#define MAX_CLIENTS 10              //maximum number of clients
+#define LIMIT 20               //limit number of factorials
+#define MAX_CLIENTS 20              //maximum number of clients
 #define STR_SIZE 32                 //max length of string
 #define HOST "127.0.0.1"            //defining host IP address
 #define PORT 1024
@@ -22,7 +22,7 @@ void read_write_to_server(int fd){
         char str[STR_SIZE];
         memset(str, 0, STR_SIZE);
         sprintf(str, "%d", i);
-        write(fd, str, sizeof(str));
+        send(fd, str, sizeof(str), MSG_EOR);
         //printf("WRITTEN TO SERVER, val = %d\n", i);
     }
     // //exit message
@@ -52,15 +52,13 @@ void* main_function(void* args){
     sock_addr.sin_addr.s_addr = inet_addr(HOST);
 
     int ERR;
-    if((ERR = connect(sockfd, (struct sockaddr *) &sock_addr, sizeof(sock_addr))) != 0){
-        printf("\n\nConnection with server failed\n");
-        printf("ERROR CODE: %d,\nDescription: %s\n", ERR, strerror(errno));
+    while((ERR = connect(sockfd, (struct sockaddr *) &sock_addr, sizeof(sock_addr))) != 0){
+        //printf("\n\nConnection with server failed\n");
+        //printf("ERROR CODE: %d,\nDescription: %s\n", ERR, strerror(errno));
 
-        exit(EXIT_FAILURE);
+        //exit(EXIT_FAILURE);
     }
-    else{
-        printf("Connected to the server\n");
-    }
+    printf("Connected to the server\n");
     printf("sockfd: %d\n", sockfd);
     read_write_to_server(sockfd);
     

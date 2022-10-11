@@ -7,7 +7,7 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <errno.h>
-
+#define LIMIT 20
 #define STR_SIZE 32                 //max length of string
 #define HOST "127.0.0.1"            //defining host IP address
 #define PORT 1024
@@ -15,7 +15,7 @@
 int CLIENT_ID = 0;
 
 void read_write_to_server(int fd){
-    for(int i = 1; i <= 20; i++){
+    for(int i = 1; i <= LIMIT; i++){
         char str[STR_SIZE];
         memset(str, 0, STR_SIZE);
         sprintf(str, "%d", i);
@@ -49,13 +49,13 @@ int main(){
     sock_addr.sin_addr.s_addr = inet_addr(HOST);
 
     int ERR;
-    if((ERR = connect(sockfd, (struct sockaddr *) &sock_addr, sizeof(sock_addr))) != 0){
-        printf("\n\nConnection with server failed\n");
-        printf("ERROR CODE: %d,\nDescription: %s\n", ERR, strerror(errno));
+    while((ERR = connect(sockfd, (struct sockaddr *) &sock_addr, sizeof(sock_addr))) != 0){
+        // printf("\n\nConnection with server failed\n");
+        // printf("ERROR CODE: %d,\nDescription: %s\n", ERR, strerror(errno));
 
-        exit(EXIT_FAILURE);
+        // exit(EXIT_FAILURE);
     }
-    else{
+    {
         printf("Connected to the server\n");
     }
     read_write_to_server(sockfd);

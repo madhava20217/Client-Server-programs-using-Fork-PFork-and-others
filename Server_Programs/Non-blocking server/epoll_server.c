@@ -9,8 +9,12 @@
 #include <errno.h>
 #include <pthread.h>
 #include <sys/epoll.h>
+#include <time.h>
+#include <fcntl.h>
 
-#define MAX_CLIENTS 10              //maximum clients that can be accommodated at once
+#define QUEUE 20                   //QUEUE up
+#define LIMIT 20                   //limit for factorial
+#define MAX_CLIENTS QUEUE            //maximum clients that can be accommodated at once
 #define STR_SIZE 32                 //max length of string
 #define HOST "127.0.0.1"            //defining host IP address
 #define PORT 1024                   //defining port number
@@ -20,7 +24,7 @@ int done = 0;                       //tracks done clients, for time tracking
 
 long long factorial(long long n);
 void read_write_to_client(int fd, FILE* fptr, struct sockaddr_in* client);
-void* serv_functions(void* args);
+//void* serv_functions(void* args);
 
 // sockfd is the socket file descriptor, file_ptr is the pointer to the open file
 struct thread_data{
@@ -47,10 +51,10 @@ void read_write_to_client(int fd, FILE* fptr, struct sockaddr_in* client){
     memset(str, 0, STR_SIZE);
     read(fd, str, STR_SIZE);            //blocking call!
 
-    usleep(3000);
+    // usleep(3000);
     int num = atoi(str);
     if(num <= 0) return;
-    if(num == 20) {
+    if(num == LIMIT) {
         done++;               //increment done by 1;
         // close(fd);
     }
@@ -66,15 +70,15 @@ void read_write_to_client(int fd, FILE* fptr, struct sockaddr_in* client){
     //         client->sin_port);
 }
 
-void* serv_functions(void* args){
+// void* serv_functions(void* args){
 
-    struct thread_data* data = (struct thread_data*) args;
-    int sockfd = data->sockfd;
-    FILE* fptr = data->file_ptr;
-    struct sockaddr_in client = data->client;
+//     struct thread_data* data = (struct thread_data*) args;
+//     int sockfd = data->sockfd;
+//     FILE* fptr = data->file_ptr;
+//     struct sockaddr_in client = data->client;
 
-    read_write_to_client(sockfd, fptr, &client);
-}
+//     read_write_to_client(sockfd, fptr, &client);
+// }
 
 int main(){
     int sockfd = 0;
@@ -85,7 +89,8 @@ int main(){
     }
 
     //printf("Socket FD is: %d\n", sockfd);
-    
+    printf("PID IS : %d\n\n", getpid());
+
 
     struct sockaddr_in sock_addr;
 
@@ -100,7 +105,7 @@ int main(){
     fptr = fopen("../../OUTPUT_EPOLL.csv", "w+");
     fprintf(fptr, "Client,i,Factorial\n");
     sync();
-    fclose(fptr);
+    //fclose(fptr);
 
     //binding socket to IP
     if((bind(sockfd, (struct sockaddr*) &sock_addr, sizeof(sock_addr))) != 0){
@@ -109,7 +114,7 @@ int main(){
     }
 
     // 20 connection requests can be queued, the rest will be dropped
-    if(listen(sockfd, 20) != 0){
+    if(listen(sockfd, QUEUE) != 0){
         printf("Couldn't listen");
         exit(EXIT_FAILURE);
     }
@@ -124,7 +129,9 @@ int main(){
 
     struct epoll_event ep_ev, events[2*MAX_CLIENTS];        //for epoll, structures
     ep_ev.events = EPOLLIN;
-    ep_ev.data.fd = sockfd;
+    struct thread_data* main_data = (struct thread_data*) malloc(sizeof(struct thread_data));           //thread data
+    main_data->sockfd = sockfd;
+    ep_ev.data.ptr = main_data;
 
     if(epoll_ctl(epoll_fd, EPOLL_CTL_ADD, sockfd, &ep_ev) < 0){
         //error
@@ -132,25 +139,20 @@ int main(){
         exit(EXIT_FAILURE);
     }
 
-    // struct pollfd poll_set[2*MAX_CLIENTS];      //for polling
-    // int num_fds = 1;                            //including the first main fd
-    // memset(poll_set, 0, sizeof(poll_set));
 
-    // poll_set[0].fd = sockfd;
-    // poll_set[0].events = POLLIN;
-    // // fd_set current_socs, prev_socs;
-    // // FD_SET(sockfd, &prev_socs);
 
-    struct sockaddr_in clients[MAX_CLIENTS];            //array of connections
-    int client_fd_map[MAX_CLIENTS];                     //array of client to fd mapping
-    memset(client_fd_map, -1, sizeof(client_fd_map));   //init to 0
+    // struct sockaddr_in clients[MAX_CLIENTS];            //array of connections
+    // int client_fd_map[MAX_CLIENTS];                     //array of client to fd mapping
+    // memset(client_fd_map, -1, sizeof(client_fd_map));   //init to 0
 
-    int TIMEOUT = 10*1000;                              //timeout initialised to 60 seconds
+    int TIMEOUT = 1000*1000;                              //timeout initialised to 60 seconds
 
     int num_clients = 0;
+
+    time_t start;
     while(1){
 
-        fptr = fopen("../../OUTPUT_EPOLL.csv", "a");   //open fptr for sync
+        //fptr = fopen("../../OUTPUT_EPOLL.csv", "a");   //open fptr for sync
 
         int num_fds;
 
@@ -162,13 +164,14 @@ int main(){
 
         //iterate over set of fds
         for(int i = 0; i < num_fds; i++){
-            if(events[i].data.fd == sockfd){
-                printf("CONNECTION\n");
+            if(((struct thread_data*)events[i].data.ptr)->sockfd == sockfd){
+                //printf("CONNECTION\n");
                 //main socket, accept client
                 struct sockaddr_in client;
                 int client_size = sizeof(client);
                 int client_socket = accept(sockfd, (struct sockaddr*) &client, &client_size);
 
+                printf("CONNECTED %d, DONE: %d\n", num_clients, done);
                 if(client_socket < 0){
                     perror(strerror(errno));
                     exit(EXIT_FAILURE);
@@ -179,44 +182,55 @@ int main(){
                 // info.client = client;
                 // info.sockfd = client_socket;
                 // info.file_ptr = NULL;
+                
+                //setnonblocking:
+                //fcntl(client_socket, F_SETFL, fcntl(client_socket, F_GETFL, 0)|O_NONBLOCK);
+
+
                 ev.events = EPOLLIN;
-                ev.data.fd = client_socket;
+                struct thread_data* c = (struct thread_data*)malloc(sizeof(struct thread_data));
+                c->client = client;
+                c->file_ptr = fptr;
+                c->sockfd = client_socket;
+                ev.data.ptr = c;
                     //add it to the polling set
                 if(epoll_ctl(epoll_fd, EPOLL_CTL_ADD, client_socket, &ev) == -1){
                     //error
                     printf("Error adding client to poll. Exiting\n");
                     exit(EXIT_FAILURE);
                 }
-
+                if(num_clients == 0){
+                    start = clock();
+                }
                 //add to array
-                clients[num_clients]       = client;
-                client_fd_map[num_clients] =  client_socket;
+                // clients[num_clients]       = client;
+                // client_fd_map[num_clients] =  client_socket;
                 num_clients++;
                 }
             else{
                     //it's some other socket, which means we need to read/write stuff
 
                     //finding client info
-                struct sockaddr_in client;
-                for(int j = 0; j < MAX_CLIENTS; j++){
-                    if(client_fd_map[j] == events[i].data.fd){
-                        client = clients[j];
-                        break;
-                    }
-                }
+                struct thread_data* t = (struct thread_data*) events[i].data.ptr;
 
                 //read and write time
-                struct thread_data data = {events[i].data.fd, fptr, client};
-                serv_functions(&data);
+                read_write_to_client(t->sockfd, t->file_ptr, &t->client);
             }
         }
         
-        fclose(fptr);
+        //fclose(fptr);
 
         if(done == MAX_CLIENTS) break;
     }
 
+    fclose(fptr);
+
     sync();
+
+    time_t end = clock();
+
+    printf("\n\nEXECUTION TIME : %.9f\n\n", ((double)end - start)/CLOCKS_PER_SEC);
+
 
     return 0;
 
