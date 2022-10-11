@@ -9,6 +9,7 @@
 #include <errno.h>
 #include <pthread.h>
 
+#define LIMIT 20                //limit number of factorials
 #define MAX_CLIENTS 10              //maximum number of clients
 #define STR_SIZE 32                 //max length of string
 #define HOST "127.0.0.1"            //defining host IP address
@@ -17,7 +18,7 @@
 int CLIENT_ID = 0;
 
 void read_write_to_server(int fd){
-    for(int i = 1; i <= 20; i++){
+    for(int i = 1; i <= LIMIT; i++){
         char str[STR_SIZE];
         memset(str, 0, STR_SIZE);
         sprintf(str, "%d", i);

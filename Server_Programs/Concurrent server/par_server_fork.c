@@ -7,6 +7,7 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <errno.h>
+#include <sys/wait.h>
 
 #define MAX_CLIENTS 10              //maximum clients that can be accommodated at once
 #define STR_SIZE 32                 //max length of string
@@ -51,6 +52,7 @@ void read_write_to_client(int fd, FILE* fptr, struct sockaddr_in* client){
     printf("Received messages from client %s:%d, printed to OUTPUT_PAR_FORK.csv.\nExiting...\n", 
             inet_ntoa(client->sin_addr),
             client->sin_port);
+    exit(EXIT_SUCCESS);
 }
 
 void print_header(FILE* fptr){
@@ -71,6 +73,7 @@ int main(){
     fflush(NULL);
     //printf("Socket FD is: %d\n", sockfd);
     
+    printf("PID OF PARENT IS: %d\n", getpid());
 
     struct sockaddr_in sock_addr;
 
@@ -109,14 +112,19 @@ int main(){
         if(forking == 0){
             //child process
             close(sockfd);
+
+            printf("PID OF CHILD IS: %d\n", getpid());
             //READ AND WRITE STUFF
             read_write_to_client(connect, fptr, &client);
             close(connect);
-            break;
+            _exit(EXIT_SUCCESS);
+            printf("EXITED\n");
         }
         printf("CONNECTED : %d\n", connected);
-        if(connected == MAX_CLIENTS) exit(0);
+        if(connected == MAX_CLIENTS)break;
     }
+
+    wait(NULL);
 
     return 0;
 
