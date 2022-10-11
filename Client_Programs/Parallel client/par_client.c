@@ -10,7 +10,7 @@
 #include <pthread.h>
 
 #define LIMIT 20               //limit number of factorials
-#define MAX_CLIENTS 1000              //maximum number of clients
+#define MAX_CLIENTS 200              //maximum number of clients
 #define STR_SIZE 32                 //max length of string
 #define HOST "127.0.0.1"            //defining host IP address
 #define PORT 1024

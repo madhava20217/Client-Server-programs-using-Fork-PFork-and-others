@@ -12,7 +12,7 @@
 #include <time.h>
 
 time_t start;
-#define QUEUE 1000                   //QUEUE UP CLASS! ALPHABETICALLY
+#define QUEUE 200                   //QUEUE UP CLASS! ALPHABETICALLY
 #define LIMIT 20
 #define MAX_CLIENTS QUEUE              //maximum clients that can be accommodated at once
 #define STR_SIZE 32                 //max length of string

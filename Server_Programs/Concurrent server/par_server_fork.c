@@ -10,7 +10,8 @@
 #include <sys/wait.h>
 #include <time.h>
 
-#define MAX_CLIENTS 10              //maximum clients that can be accommodated at once
+#define QUEUE 1000                      //QUEUE UP CLIENTS!
+#define MAX_CLIENTS QUEUE              //maximum clients that can be accommodated at once
 #define STR_SIZE 32                 //max length of string
 #define HOST "127.0.0.1"            //defining host IP address
 #define PORT 1024                   //defining port number
@@ -91,7 +92,7 @@ int main(){
         exit(EXIT_FAILURE);
     }
 
-    if(listen(sockfd, 20) != 0){
+    if(listen(sockfd, QUEUE) != 0){
         printf("Couldn't listen");
         exit(EXIT_FAILURE);
     }

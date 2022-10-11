@@ -12,7 +12,7 @@
 #include <time.h>
 #include <fcntl.h>
 
-#define QUEUE 1000                   //QUEUE up
+#define QUEUE 200                   //QUEUE up
 #define LIMIT 20                   //limit for factorial
 #define MAX_CLIENTS QUEUE            //maximum clients that can be accommodated at once
 #define STR_SIZE 32                 //max length of string
