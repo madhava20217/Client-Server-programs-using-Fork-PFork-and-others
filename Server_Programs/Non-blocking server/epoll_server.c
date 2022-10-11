@@ -10,9 +10,11 @@
 #include <pthread.h>
 #include <sys/epoll.h>
 #include <time.h>
+#include <fcntl.h>
 
+#define QUEUE 1000                   //QUEUE up
 #define LIMIT 20                   //limit for factorial
-#define MAX_CLIENTS 10            //maximum clients that can be accommodated at once
+#define MAX_CLIENTS QUEUE            //maximum clients that can be accommodated at once
 #define STR_SIZE 32                 //max length of string
 #define HOST "127.0.0.1"            //defining host IP address
 #define PORT 1024                   //defining port number
@@ -103,7 +105,7 @@ int main(){
     fptr = fopen("../../OUTPUT_EPOLL.csv", "w+");
     fprintf(fptr, "Client,i,Factorial\n");
     sync();
-    fclose(fptr);
+    //fclose(fptr);
 
     //binding socket to IP
     if((bind(sockfd, (struct sockaddr*) &sock_addr, sizeof(sock_addr))) != 0){
@@ -112,7 +114,7 @@ int main(){
     }
 
     // 20 connection requests can be queued, the rest will be dropped
-    if(listen(sockfd, 20) != 0){
+    if(listen(sockfd, QUEUE) != 0){
         printf("Couldn't listen");
         exit(EXIT_FAILURE);
     }
@@ -135,14 +137,7 @@ int main(){
         exit(EXIT_FAILURE);
     }
 
-    // struct pollfd poll_set[2*MAX_CLIENTS];      //for polling
-    // int num_fds = 1;                            //including the first main fd
-    // memset(poll_set, 0, sizeof(poll_set));
 
-    // poll_set[0].fd = sockfd;
-    // poll_set[0].events = POLLIN;
-    // // fd_set current_socs, prev_socs;
-    // // FD_SET(sockfd, &prev_socs);
 
     struct sockaddr_in clients[MAX_CLIENTS];            //array of connections
     int client_fd_map[MAX_CLIENTS];                     //array of client to fd mapping
@@ -155,7 +150,7 @@ int main(){
     time_t start;
     while(1){
 
-        fptr = fopen("../../OUTPUT_EPOLL.csv", "a");   //open fptr for sync
+        //fptr = fopen("../../OUTPUT_EPOLL.csv", "a");   //open fptr for sync
 
         int num_fds;
 
@@ -174,6 +169,7 @@ int main(){
                 int client_size = sizeof(client);
                 int client_socket = accept(sockfd, (struct sockaddr*) &client, &client_size);
 
+                printf("CONNECTED %d, DONE: %d\n", num_clients, done);
                 if(client_socket < 0){
                     perror(strerror(errno));
                     exit(EXIT_FAILURE);
@@ -184,6 +180,11 @@ int main(){
                 // info.client = client;
                 // info.sockfd = client_socket;
                 // info.file_ptr = NULL;
+                
+                //setnonblocking:
+                //fcntl(client_socket, F_SETFL, fcntl(client_socket, F_GETFL, 0)|O_NONBLOCK);
+
+
                 ev.events = EPOLLIN;
                 ev.data.fd = client_socket;
                     //add it to the polling set
@@ -218,10 +219,12 @@ int main(){
             }
         }
         
-        fclose(fptr);
+        //fclose(fptr);
 
         if(done == MAX_CLIENTS) break;
     }
+
+    fclose(fptr);
 
     sync();
 

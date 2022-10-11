@@ -12,8 +12,9 @@
 #include <time.h>
 
 time_t start;
-#define LIMIT 2000
-#define MAX_CLIENTS 10              //maximum clients that can be accommodated at once
+#define QUEUE 1000                   //QUEUE UP CLASS! ALPHABETICALLY
+#define LIMIT 20
+#define MAX_CLIENTS QUEUE              //maximum clients that can be accommodated at once
 #define STR_SIZE 32                 //max length of string
 #define HOST "127.0.0.1"            //defining host IP address
 #define PORT 1024                   //defining port number
@@ -112,7 +113,7 @@ int main(){
     }
 
     // 20 connection requests can be queued, the rest will be dropped
-    if(listen(sockfd, 20) != 0){
+    if(listen(sockfd, QUEUE) != 0){
         printf("Couldn't listen");
         exit(EXIT_FAILURE);
     }
@@ -160,7 +161,7 @@ int main(){
                     struct sockaddr_in client;
                     int client_size = sizeof(client);
                     int client_socket = accept(sockfd, (struct sockaddr*) &client, &client_size);
-
+                    printf("CONNECTED %d, DONE: %d\n", num_clients, done);
                     if(client_socket < 0){
                         perror(strerror(errno));
                         exit(EXIT_FAILURE);
@@ -169,7 +170,6 @@ int main(){
                         start = clock();
                     }
 
-                    printf("clock : %d\n\n", start);
                     //add it to the polling set
                     poll_set[num_fds].fd = client_socket;
                     poll_set[num_fds++].events = POLLIN;
