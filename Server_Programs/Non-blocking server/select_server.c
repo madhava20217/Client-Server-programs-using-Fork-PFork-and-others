@@ -11,7 +11,7 @@
 #include <time.h>
 #include <sys/select.h>             //for select syscall
 
-#define QUEUE 200                      //QUEUE UP CLASS!
+#define QUEUE 20                      //QUEUE UP CLASS!
 #define LIMIT 20
 #define MAX_CLIENTS QUEUE              //maximum clients that can be accommodated at once
 #define STR_SIZE 32                 //max length of string

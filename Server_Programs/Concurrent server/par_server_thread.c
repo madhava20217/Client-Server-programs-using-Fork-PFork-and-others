@@ -12,7 +12,7 @@
 
 static time_t start;
 
-#define QUEUE  200                //QUEUE UP CLIENTS
+#define QUEUE  20                //QUEUE UP CLIENTS
 #define MAX_CLIENTS QUEUE              //maximum clients that can be accommodated at once
 #define STR_SIZE 32                 //max length of string
 #define HOST "127.0.0.1"            //defining host IP address
