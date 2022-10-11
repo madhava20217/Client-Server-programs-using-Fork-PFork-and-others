@@ -24,7 +24,7 @@ int done = 0;                       //tracks done clients, for time tracking
 
 long long factorial(long long n);
 void read_write_to_client(int fd, FILE* fptr, struct sockaddr_in* client);
-void* serv_functions(void* args);
+//void* serv_functions(void* args);
 
 // sockfd is the socket file descriptor, file_ptr is the pointer to the open file
 struct thread_data{
@@ -70,15 +70,15 @@ void read_write_to_client(int fd, FILE* fptr, struct sockaddr_in* client){
     //         client->sin_port);
 }
 
-void* serv_functions(void* args){
+// void* serv_functions(void* args){
 
-    struct thread_data* data = (struct thread_data*) args;
-    int sockfd = data->sockfd;
-    FILE* fptr = data->file_ptr;
-    struct sockaddr_in client = data->client;
+//     struct thread_data* data = (struct thread_data*) args;
+//     int sockfd = data->sockfd;
+//     FILE* fptr = data->file_ptr;
+//     struct sockaddr_in client = data->client;
 
-    read_write_to_client(sockfd, fptr, &client);
-}
+//     read_write_to_client(sockfd, fptr, &client);
+// }
 
 int main(){
     int sockfd = 0;
@@ -129,7 +129,9 @@ int main(){
 
     struct epoll_event ep_ev, events[2*MAX_CLIENTS];        //for epoll, structures
     ep_ev.events = EPOLLIN;
-    ep_ev.data.fd = sockfd;
+    struct thread_data* main_data = (struct thread_data*) malloc(sizeof(struct thread_data));           //thread data
+    main_data->sockfd = sockfd;
+    ep_ev.data.ptr = main_data;
 
     if(epoll_ctl(epoll_fd, EPOLL_CTL_ADD, sockfd, &ep_ev) < 0){
         //error
@@ -139,9 +141,9 @@ int main(){
 
 
 
-    struct sockaddr_in clients[MAX_CLIENTS];            //array of connections
-    int client_fd_map[MAX_CLIENTS];                     //array of client to fd mapping
-    memset(client_fd_map, -1, sizeof(client_fd_map));   //init to 0
+    // struct sockaddr_in clients[MAX_CLIENTS];            //array of connections
+    // int client_fd_map[MAX_CLIENTS];                     //array of client to fd mapping
+    // memset(client_fd_map, -1, sizeof(client_fd_map));   //init to 0
 
     int TIMEOUT = 1000*1000;                              //timeout initialised to 60 seconds
 
@@ -162,7 +164,7 @@ int main(){
 
         //iterate over set of fds
         for(int i = 0; i < num_fds; i++){
-            if(events[i].data.fd == sockfd){
+            if(((struct thread_data*)events[i].data.ptr)->sockfd == sockfd){
                 //printf("CONNECTION\n");
                 //main socket, accept client
                 struct sockaddr_in client;
@@ -186,7 +188,11 @@ int main(){
 
 
                 ev.events = EPOLLIN;
-                ev.data.fd = client_socket;
+                struct thread_data* c = (struct thread_data*)malloc(sizeof(struct thread_data));
+                c->client = client;
+                c->file_ptr = fptr;
+                c->sockfd = client_socket;
+                ev.data.ptr = c;
                     //add it to the polling set
                 if(epoll_ctl(epoll_fd, EPOLL_CTL_ADD, client_socket, &ev) == -1){
                     //error
@@ -197,25 +203,18 @@ int main(){
                     start = clock();
                 }
                 //add to array
-                clients[num_clients]       = client;
-                client_fd_map[num_clients] =  client_socket;
+                // clients[num_clients]       = client;
+                // client_fd_map[num_clients] =  client_socket;
                 num_clients++;
                 }
             else{
                     //it's some other socket, which means we need to read/write stuff
 
                     //finding client info
-                struct sockaddr_in client;
-                for(int j = 0; j < MAX_CLIENTS; j++){
-                    if(client_fd_map[j] == events[i].data.fd){
-                        client = clients[j];
-                        break;
-                    }
-                }
+                struct thread_data* t = (struct thread_data*) events[i].data.ptr;
 
                 //read and write time
-                struct thread_data data = {events[i].data.fd, fptr, client};
-                serv_functions(&data);
+                read_write_to_client(t->sockfd, t->file_ptr, &t->client);
             }
         }
         
