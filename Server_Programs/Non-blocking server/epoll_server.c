@@ -9,7 +9,9 @@
 #include <errno.h>
 #include <pthread.h>
 #include <sys/epoll.h>
+#include <time.h>
 
+#define LIMIT 20                   //limit for factorial
 #define MAX_CLIENTS 10              //maximum clients that can be accommodated at once
 #define STR_SIZE 32                 //max length of string
 #define HOST "127.0.0.1"            //defining host IP address
@@ -47,19 +49,19 @@ void read_write_to_client(int fd, FILE* fptr, struct sockaddr_in* client){
     memset(str, 0, STR_SIZE);
     read(fd, str, STR_SIZE);            //blocking call!
 
-    usleep(3000);
+    // usleep(3000);
     int num = atoi(str);
     if(num <= 0) return;
-    if(num == 20) {
+    if(num == LIMIT) {
         done++;               //increment done by 1;
         // close(fd);
     }
-    fprintf(fptr, "%s:%d,%d,%lld\n", 
-        inet_ntoa(client->sin_addr),
-        client->sin_port,
-        num,
-        factorial(num)
-        );
+    // fprintf(fptr, "%s:%d,%d,%lld\n", 
+    //     inet_ntoa(client->sin_addr),
+    //     client->sin_port,
+    //     num,
+    //     factorial(num)
+    //     );
     sync();
     // printf("Received messages from client %s:%d, printed to OUTPUT_PAR_THREAD.csv.\nExiting...\n", 
     //         inet_ntoa(client->sin_addr),
@@ -85,7 +87,8 @@ int main(){
     }
 
     //printf("Socket FD is: %d\n", sockfd);
-    
+    printf("PID IS : %d\n\n", getpid());
+
 
     struct sockaddr_in sock_addr;
 
@@ -145,9 +148,11 @@ int main(){
     int client_fd_map[MAX_CLIENTS];                     //array of client to fd mapping
     memset(client_fd_map, -1, sizeof(client_fd_map));   //init to 0
 
-    int TIMEOUT = 10*1000;                              //timeout initialised to 60 seconds
+    int TIMEOUT = 1000*1000;                              //timeout initialised to 60 seconds
 
     int num_clients = 0;
+
+    time_t start;
     while(1){
 
         fptr = fopen("../../OUTPUT_EPOLL.csv", "a");   //open fptr for sync
@@ -163,7 +168,7 @@ int main(){
         //iterate over set of fds
         for(int i = 0; i < num_fds; i++){
             if(events[i].data.fd == sockfd){
-                printf("CONNECTION\n");
+                //printf("CONNECTION\n");
                 //main socket, accept client
                 struct sockaddr_in client;
                 int client_size = sizeof(client);
@@ -187,7 +192,9 @@ int main(){
                     printf("Error adding client to poll. Exiting\n");
                     exit(EXIT_FAILURE);
                 }
-
+                if(num_clients == 0){
+                    start = clock();
+                }
                 //add to array
                 clients[num_clients]       = client;
                 client_fd_map[num_clients] =  client_socket;
@@ -217,6 +224,11 @@ int main(){
     }
 
     sync();
+
+    time_t end = clock();
+
+    printf("\n\nEXECUTION TIME : %.9f\n\n", ((double)end - start)/CLOCKS_PER_SEC);
+
 
     return 0;
 

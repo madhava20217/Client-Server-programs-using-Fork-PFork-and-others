@@ -8,8 +8,10 @@
 #include <sys/socket.h>
 #include <errno.h>
 #include <pthread.h>
+#include <time.h>
 #include <sys/select.h>             //for select syscall
 
+#define LIMIT 20
 #define MAX_CLIENTS 10              //maximum clients that can be accommodated at once
 #define STR_SIZE 32                 //max length of string
 #define HOST "127.0.0.1"            //defining host IP address
@@ -47,10 +49,9 @@ void read_write_to_client(int fd, FILE* fptr, struct sockaddr_in* client){
     memset(str, 0, STR_SIZE);
     read(fd, str, STR_SIZE);            //blocking call!
 
-    usleep(3000);
     int num = atoi(str);
     if(num <= 0) return;
-    if(num == 20) done++;               //increment done by 1;
+    if(num == LIMIT) done++;               //increment done by 1;
     fprintf(fptr, "%s:%d,%d,%lld\n", 
         inet_ntoa(client->sin_addr),
         client->sin_port,
@@ -82,7 +83,7 @@ int main(){
     }
 
     //printf("Socket FD is: %d\n", sockfd);
-    
+    printf("PID IS : %d\n\n", getpid());
 
     struct sockaddr_in sock_addr;
 
@@ -120,6 +121,8 @@ int main(){
 
 
     int num_clients = 0;
+
+    time_t start;
     while(1){
 
         fptr = fopen("../../OUTPUT_SELECT.csv", "a");   //open fptr for sync
@@ -148,7 +151,9 @@ int main(){
                     }
 
                     FD_SET(client_socket, &prev_socs);
-
+                    if(num_clients == 0){
+                        start = clock();
+                    }
                     //add to array
                     clients[num_clients]       = client;
                     client_fd_map[num_clients] =  client_socket;
@@ -177,8 +182,9 @@ int main(){
 
         if(done == MAX_CLIENTS) break;
     }
-
+    time_t end = clock();
     sync();
+    printf("\n\nEXECUTION TIME : %.9f\n\n", ((double)end - start)/CLOCKS_PER_SEC);
 
     return 0;
 

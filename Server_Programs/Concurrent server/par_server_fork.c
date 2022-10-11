@@ -8,6 +8,7 @@
 #include <sys/socket.h>
 #include <errno.h>
 #include <sys/wait.h>
+#include <time.h>
 
 #define MAX_CLIENTS 10              //maximum clients that can be accommodated at once
 #define STR_SIZE 32                 //max length of string
@@ -49,7 +50,7 @@ void read_write_to_client(int fd, FILE* fptr, struct sockaddr_in* client){
             );
         sync();
     }
-    printf("Received messages from client %s:%d, printed to OUTPUT_PAR_FORK.csv.\nExiting...\n", 
+    printf("Received messages from client %s:%d, printed to OUTPUT_PAR_FORK.csv. Exiting...\n", 
             inet_ntoa(client->sin_addr),
             client->sin_port);
     exit(EXIT_SUCCESS);
@@ -98,10 +99,13 @@ int main(){
     struct sockaddr_in client;
     int n_bytes_client = sizeof(client);
 
+    clock_t start;
+
     int connected = 0;
     while(1){
         
         int connect = accept(sockfd, (struct sockaddr*) &client, &n_bytes_client);
+        if(connected == 0) start = clock();
         if(connect < 0){
             printf("Couldn't connect");
             exit(EXIT_FAILURE);
@@ -113,18 +117,19 @@ int main(){
             //child process
             close(sockfd);
 
-            printf("PID OF CHILD IS: %d\n", getpid());
+            //printf("PID OF CHILD IS: %d\n", getpid());
             //READ AND WRITE STUFF
             read_write_to_client(connect, fptr, &client);
             close(connect);
             _exit(EXIT_SUCCESS);
-            printf("EXITED\n");
         }
         printf("CONNECTED : %d\n", connected);
         if(connected == MAX_CLIENTS)break;
     }
 
     wait(NULL);
+    clock_t end = clock();
+    printf("\n\nTIME TAKEN = %.10f\n", ((double)(end-start))/CLOCKS_PER_SEC);
 
     return 0;
 

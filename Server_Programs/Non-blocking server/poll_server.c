@@ -9,7 +9,10 @@
 #include <errno.h>
 #include <pthread.h>
 #include <poll.h>
+#include <time.h>
 
+time_t start;
+#define LIMIT 2000
 #define MAX_CLIENTS 10              //maximum clients that can be accommodated at once
 #define STR_SIZE 32                 //max length of string
 #define HOST "127.0.0.1"            //defining host IP address
@@ -47,10 +50,9 @@ void read_write_to_client(int fd, FILE* fptr, struct sockaddr_in* client){
     memset(str, 0, STR_SIZE);
     read(fd, str, STR_SIZE);            //blocking call!
 
-    usleep(3000);
     int num = atoi(str);
     if(num <= 0) return;
-    if(num == 20) {
+    if(num == LIMIT) {
         done++;               //increment done by 1;
         // close(fd);
     }
@@ -86,6 +88,7 @@ int main(){
 
     //printf("Socket FD is: %d\n", sockfd);
     
+    printf("PID IS : %d\n\n", getpid());
 
     struct sockaddr_in sock_addr;
 
@@ -127,7 +130,7 @@ int main(){
     int client_fd_map[MAX_CLIENTS];                     //array of client to fd mapping
     memset(client_fd_map, -1, sizeof(client_fd_map));   //init to 0
 
-    int TIMEOUT = 10*1000;                              //timeout initialised to 60 seconds
+    int TIMEOUT = 100*1000;                              //timeout initialised to 60 seconds
 
     int num_clients = 0;
     while(1){
@@ -152,7 +155,7 @@ int main(){
             }
             else{
                 if(poll_set[i].fd == sockfd){
-                    printf("CONNECTION\n");
+                    //printf("CONNECTION\n");
                     //main socket, accept client
                     struct sockaddr_in client;
                     int client_size = sizeof(client);
@@ -162,7 +165,11 @@ int main(){
                         perror(strerror(errno));
                         exit(EXIT_FAILURE);
                     }
+                    if(num_clients == 0){
+                        start = clock();
+                    }
 
+                    printf("clock : %d\n\n", start);
                     //add it to the polling set
                     poll_set[num_fds].fd = client_socket;
                     poll_set[num_fds++].events = POLLIN;
@@ -196,8 +203,9 @@ int main(){
 
         if(done == MAX_CLIENTS) break;
     }
-
+    time_t end = clock();
     sync();
+    printf("\n\nEXECUTION TIME : %.9f\n\n", ((double)end - start)/CLOCKS_PER_SEC);
 
     return 0;
 
